@@ -1,0 +1,153 @@
+.auth-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #f4f7f6;
+  font-family: 'Arial', sans-serif;
+  padding: 20px;
+}
+
+h1 {
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 1.8rem;
+  text-align: center;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-input {
+  margin-bottom: 15px;
+  padding: 12px;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  transition: border 0.3s ease;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: #6c63ff;
+}
+
+.auth-button {
+  padding: 12px;
+  background-color: #6c63ff;
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background 0.3s ease;
+}
+
+.auth-button:hover {
+  background-color: #5751d1;
+}
+
+.auth-toggle {
+  color: #6c63ff;
+  cursor: pointer;
+  text-align: center;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.auth-toggle:hover {
+  text-decoration: underline;
+}
+
+.auth-message {
+  color: #d9534f;
+  margin-top: 10px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.welcome-popup {
+  position: fixed;
+  top: 10%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #4caf50;
+  color: white;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 1rem;
+  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  animation: fadeOut 3s forwards;
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.auth-attempts {
+  font-size: 0.9rem;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 15px;
+  color: #ff9800;
+}
+
+.auth-attempts.critical {
+  color: #f44336;
+}
+
+.auth-attempts.safe {
+  color: #4caf50;
+}
+
+@media (max-width: 768px) {
+  .auth-container {
+    padding: 10px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .form-container {
+    padding: 15px;
+    max-width: 100%;
+    box-shadow: none;
+  }
+
+  .auth-input {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  .auth-button {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  .auth-toggle {
+    font-size: 0.8rem;
+  }
+
+  .auth-attempts {
+    font-size: 0.8rem;
+  }
+}

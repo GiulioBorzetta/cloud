@@ -1,0 +1,140 @@
+.shared-container {
+    width: 90%;
+    margin: 2rem auto;
+    font-family: Arial, sans-serif;
+    color: #333;
+  }
+
+  .shared-title {
+    text-align: center;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+  }
+
+  .shared-message {
+    color: red;
+    text-align: center;
+  }
+
+  .shared-empty {
+    text-align: center;
+    color: #7f8c8d;
+  }
+
+  .shared-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .shared-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin: 0.5rem 0;
+    padding: 1rem;
+    transition: box-shadow 0.3s ease-in-out;
+  }
+  
+  .shared-item:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .item-info {
+    flex: 1;
+  }
+  
+  .item-type {
+    font-weight: bold;
+    color: #3498db;
+  }
+  
+  .item-name {
+    display: block;
+    font-size: 1rem;
+    margin: 0.2rem 0;
+  }
+  
+  .item-owner {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+  }
+
+  .item-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .btn {
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border-radius: 5px;
+    transition: background 0.3s, transform 0.2s;
+  }
+  
+  .btn:hover {
+    transform: translateY(-2px);
+  }
+  
+  .btn.download {
+    background-color: #2ecc71;
+    color: white;
+  }
+  
+  .btn.delete {
+    background-color: #e74c3c;
+    color: white;
+  }
+  
+  .btn.open {
+    background-color: #3498db;
+    color: white;
+  }
+
+  .share-item {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  
+  .input-share {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+  
+  .btn.share {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  
+  .btn.share:hover {
+    background-color: #2980b9;
+  }
+  
+  .message {
+    margin-top: 0.5rem;
+    color: green;
+  }
+  
+  @media screen and (max-width: 768px) {
+    .share-item{
+      flex-direction: column;
+    }
+
+    .item-buttons{
+      flex-direction: column;
+    }
+  }
+  
