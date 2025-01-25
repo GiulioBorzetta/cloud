@@ -75,7 +75,7 @@ per poter creare un account admin, visto che all interno del sito non é possibi
   "adminPassword": "password presente sul file .env"
 }
 ```
-é possibile utilizzare postman cliccando !(qui)[https://www.postman.com/]
+é possibile utilizzare postman cliccando [qui](https://www.postman.com/)
 
 adminPassword é una password presente nel file .env che permette solamente a chi conosce la password di poter creare un account admin, cosí da alzare la sicurezza.
 
