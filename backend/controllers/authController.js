@@ -53,10 +53,14 @@ export const updatePassword = (req, res) => {
 };
 
 export const register = async (req, res) => {
-  const { username, password, role } = req.body;
+  const { username, password, role, adminPassword } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Username e password sono obbligatori.' });
+  }
+
+  if (role === 'admin' && adminPassword !== process.env.ADMIN_CREATION_PASSWORD) {
+    return res.status(403).json({ error: 'Permesso negato. La password di sicurezza per creare un admin non è valida.' });
   }
 
   try {

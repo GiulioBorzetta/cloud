@@ -43,7 +43,16 @@ const useAccountLock = (maxAttempts) => {
     });
   }, [maxAttempts]);
 
-  return { isLocked, unlockTime, attempts, incrementAttempts };
+  const resetAttempts = useCallback(() => {
+    setAttempts(0);
+    setIsLocked(false);
+    setUnlockTime(null);
+    localStorage.removeItem('attempts');
+    localStorage.removeItem('isLocked');
+    localStorage.removeItem('unlockTime');
+  }, []);
+
+  return { isLocked, unlockTime, attempts, incrementAttempts, resetAttempts };
 };
 
 const App = () => {
@@ -56,7 +65,7 @@ const App = () => {
 
   const navigate = useNavigate();
   const MAX_ATTEMPTS = 5;
-  const { isLocked, unlockTime, attempts, incrementAttempts } = useAccountLock(MAX_ATTEMPTS);
+  const { isLocked, unlockTime, attempts, incrementAttempts, resetAttempts } = useAccountLock(MAX_ATTEMPTS);
 
   const handleAuth = useCallback(async () => {
     if (isLocked) {
@@ -83,6 +92,9 @@ const App = () => {
         const { token, role } = response.data;
         if (!token) throw new Error('Token non ricevuto durante il login');
 
+        // Reset dei tentativi al successo del login
+        resetAttempts();
+
         localStorage.setItem('token', token);
         localStorage.setItem('role', role);
 
@@ -99,7 +111,7 @@ const App = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isRegistering, username, password, isLocked, unlockTime, navigate, incrementAttempts]);
+  }, [isRegistering, username, password, isLocked, unlockTime, navigate, incrementAttempts, resetAttempts]);
 
   const getAttemptsClass = () => {
     if (attempts >= MAX_ATTEMPTS - 1) return 'auth-attempts critical';
