@@ -9,7 +9,7 @@
 questa é l'impostazione di come dovrebbe essere il file .env per il frontend:
 
 ```env
-REACT_APP_API_URL=yourAddress`
+REACT_APP_API_URL=yourAddress
 ```
 
 questa é l'impostazione di come dovrebbe essere il file .env per il backend:
