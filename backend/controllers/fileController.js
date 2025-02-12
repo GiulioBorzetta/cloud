@@ -8,32 +8,52 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 
-export const createFolder = (req, res) => {
+export const createFolder = async (req, res) => {
   const { name, parentPath } = req.body;
   const userId = req.user.id;
 
-  if (!name) return res.status(400).json({ error: 'Nome della cartella obbligatorio.' });
+  if (!name) {
+    return res.status(400).json({ error: 'Nome della cartella obbligatorio.' });
+  }
 
   const fullPath = path.join(process.cwd(), 'uploads', userId.toString(), parentPath || '', name);
 
-  const checkQuery = `SELECT * FROM folders WHERE name = ? AND userId = ? AND parentPath = ?`;
-  db.query(checkQuery, [name, userId, parentPath || '/'], (err, results) => {
-    if (err) return res.status(500).json({ error: 'Errore durante il controllo della cartella.' });
-    if (results.length > 0) return res.status(400).json({ error: 'Una cartella con questo nome esiste già.' });
-
-    fs.mkdir(fullPath, { recursive: true }, (err) => {
-      if (err) return res.status(500).json({ error: 'Errore nella creazione della cartella.' });
-
-      const query = `INSERT INTO folders (name, userId, parentPath) VALUES (?, ?, ?)`;
-      db.query(query, [name, userId, parentPath || '/'], (err) => {
-        if (err) return res.status(500).json({ error: 'Errore durante la creazione della cartella.' });
-        res.status(201).json({ message: '' });
+  try {
+    const checkQuery = 'SELECT * FROM folders WHERE name = ? AND userId = ? AND parentPath = ?';
+    const results = await new Promise((resolve, reject) => {
+      db.query(checkQuery, [name, userId, parentPath || '/'], (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
       });
     });
-  });
+
+    if (results.length > 0) {
+      return res.status(400).json({ error: 'Una cartella con questo nome esiste già.' });
+    }
+
+    await new Promise((resolve, reject) => {
+      fs.mkdir(fullPath, { recursive: true }, (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+
+    const insertQuery = 'INSERT INTO folders (name, userId, parentPath) VALUES (?, ?, ?)';
+    await new Promise((resolve, reject) => {
+      db.query(insertQuery, [name, userId, parentPath || '/'], (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      });
+    });
+
+    return res.status(201).json({ message: 'Cartella creata con successo!' });
+  } catch (error) {
+    console.error('Errore nella creazione della cartella:', error);
+    return res.status(500).json({ error: 'Errore nella creazione della cartella.' });
+  }
 };
 
-export const deleteFolder = (req, res) => {
+export const deleteFolder = async (req, res) => {
   const { folderPath } = req.body;
   const userId = req.user.id;
 
@@ -41,24 +61,28 @@ export const deleteFolder = (req, res) => {
     return res.status(400).json({ error: 'Percorso della cartella non fornito.' });
   }
 
-  const deleteFilesQuery = `DELETE FROM files WHERE folderPath = ? AND userId = ?`;
-  const deleteFolderQuery = `DELETE FROM folders WHERE name = ? AND userId = ?`;
-
-  db.query(deleteFilesQuery, [folderPath, userId], (err) => {
-    if (err) {
-      console.error('Errore durante l\'eliminazione dei file:', err);
-      return res.status(500).json({ error: 'Errore durante l\'eliminazione dei file.' });
-    }
-
-    db.query(deleteFolderQuery, [folderPath, userId], (err) => {
-      if (err) {
-        console.error('Errore durante l\'eliminazione della cartella:', err);
-        return res.status(500).json({ error: 'Errore durante l\'eliminazione della cartella.' });
-      }
-
-      res.status(200).json({ message: 'Cartella eliminata con successo!' });
+  try {
+    const deleteFilesQuery = 'DELETE FROM files WHERE folderPath = ? AND userId = ?';
+    await new Promise((resolve, reject) => {
+      db.query(deleteFilesQuery, [folderPath, userId], (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      });
     });
-  });
+
+    const deleteFolderQuery = 'DELETE FROM folders WHERE name = ? AND userId = ?';
+    await new Promise((resolve, reject) => {
+      db.query(deleteFolderQuery, [folderPath, userId], (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      });
+    });
+
+    return res.status(200).json({ message: 'Cartella eliminata con successo!' });
+  } catch (error) {
+    console.error('Errore durante l\'eliminazione della cartella:', error);
+    return res.status(500).json({ error: 'Errore durante l\'eliminazione della cartella.' });
+  }
 };
 
 export const generalDelete = async (req, res) => {
@@ -118,23 +142,38 @@ export const generalDelete = async (req, res) => {
   }
 };
 
-export const deleteFile = (req, res) => {
-    const { fileName, folderPath } = req.body;
-    const userId = req.user.id;
-  
-    const deleteFileQuery = `DELETE FROM files WHERE encryptedName = ? AND folderPath = ? AND userId = ?`;
-  
-    db.query(deleteFileQuery, [fileName, folderPath, userId], (err, results) => {
-      if (err) return res.status(500).json({ error: 'Errore durante l\'eliminazione del file.' });
-      if (results.affectedRows === 0) return res.status(404).json({ error: 'File non trovato o accesso negato.' });
-  
-      const filePath = path.join(process.cwd(), 'uploads', userId.toString(), folderPath, fileName);
-      fs.unlink(filePath, (unlinkErr) => {
-        if (unlinkErr) return res.status(500).json({ error: 'Errore durante l\'eliminazione del file fisico.' });
-        res.status(200).json({ message: 'File eliminato con successo!' });
+export const deleteFile = async (req, res) => {
+  const { fileName, folderPath } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const deleteFileQuery = 'DELETE FROM files WHERE encryptedName = ? AND folderPath = ? AND userId = ?';
+    const results = await new Promise((resolve, reject) => {
+      db.query(deleteFileQuery, [fileName, folderPath, userId], (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
       });
     });
-  };
+
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ error: 'File non trovato o accesso negato.' });
+    }
+
+    const filePath = path.join(process.cwd(), 'uploads', userId.toString(), folderPath, fileName);
+
+    await new Promise((resolve, reject) => {
+      fs.unlink(filePath, (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+
+    return res.status(200).json({ message: 'File eliminato con successo!' });
+  } catch (error) {
+    console.error('Errore durante l\'eliminazione del file:', error);
+    return res.status(500).json({ error: 'Errore durante l\'eliminazione del file.' });
+  }
+};
 
   export const deleteItem = (req, res) => {
     const { path: itemPath, isFolder } = req.body;
@@ -153,22 +192,31 @@ export const deleteFile = (req, res) => {
     }
   };
   
-  export const getFiles = (req, res) => {
+  export const getFiles = async (req, res) => {
     const userId = req.user.id;
   
-    const query = `
-      SELECT originalName, encryptedName, id, folderPath
-      FROM files 
-      WHERE userId = ? AND folderPath = '/';
-    `;
+    try {
+      const query = `
+        SELECT originalName, encryptedName, id, folderPath
+        FROM files 
+        WHERE userId = ? AND folderPath = '/';
+      `;
   
-    db.query(query, [userId], (err, results) => {
-      if (err) return res.status(500).json({ error: 'Errore nel recupero dei file.' });
-      res.status(200).json({ files: results });
-    });
+      const results = await new Promise((resolve, reject) => {
+        db.query(query, [userId], (err, results) => {
+          if (err) return reject(err);
+          resolve(results);
+        });
+      });
+  
+      return res.status(200).json({ files: results });
+    } catch (error) {
+      console.error('Errore nel recupero dei file:', error);
+      return res.status(500).json({ error: 'Errore nel recupero dei file.' });
+    }
   };
   
-  export const updateFileVisibility = (req, res) => {
+  export const updateFileVisibility = async (req, res) => {
     const { id, itemType, visibility } = req.body;
     const userId = req.user.id;
   
@@ -184,14 +232,25 @@ export const deleteFile = (req, res) => {
       WHERE id = ? AND userId = ?;
     `;
   
-    db.query(query, [visibility, id, userId], (err, results) => {
-      if (err) return res.status(500).json({ error: 'Errore durante l\'aggiornamento della visibilità.' });
-      if (results.affectedRows === 0) return res.status(404).json({ error: 'Elemento non trovato o accesso negato.' });
+    try {
+      const results = await new Promise((resolve, reject) => {
+        db.query(query, [visibility, id, userId], (err, results) => {
+          if (err) return reject(err);
+          resolve(results);
+        });
+      });
   
-      res.status(200).json({ message: 'Visibilità aggiornata con successo.' });
-    });
+      if (results.affectedRows === 0) {
+        return res.status(404).json({ error: 'Elemento non trovato o accesso negato.' });
+      }
+  
+      return res.status(200).json({ message: 'Visibilità aggiornata con successo.' });
+    } catch (error) {
+      console.error('Errore durante l\'aggiornamento della visibilità:', error);
+      return res.status(500).json({ error: 'Errore durante l\'aggiornamento della visibilità.' });
+    }
   };
-  
+    
   export const generateFileQRCode = async (req, res) => {
     const { folderName, fileName } = req.params;
     const fileUrl = `http://localhost:5004/uploads/${req.user.id}/${folderName}/${fileName}`;
@@ -253,7 +312,7 @@ export const getFolderContents = (req, res) => {
     }
   };
 
-  export const downloadFile = (req, res) => {
+export const downloadFile = async (req, res) => {
   const { fileId } = req.params;
   const userId = req.user.id;
 
@@ -263,11 +322,13 @@ export const getFolderContents = (req, res) => {
     WHERE id = ? AND userId = ?;
   `;
 
-  db.query(query, [fileId, userId], (err, results) => {
-    if (err) {
-      console.error('Errore durante il recupero del file:', err);
-      return res.status(500).json({ error: 'Errore durante il recupero del file.' });
-    }
+  try {
+    const results = await new Promise((resolve, reject) => {
+      db.query(query, [fileId, userId], (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
 
     if (results.length === 0) {
       return res.status(404).json({ error: 'File non trovato.' });
@@ -283,16 +344,19 @@ export const getFolderContents = (req, res) => {
       encryptedName
     );
 
-    res.download(filePath, (err) => {
-      if (err) {
-        console.error('Errore durante il download del file:', err);
-        res.status(500).json({ error: 'Errore durante il download del file.' });
-      }
+    await new Promise((resolve, reject) => {
+      res.download(filePath, (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
     });
-  });
+  } catch (error) {
+    console.error('Errore durante il download del file:', error);
+    return res.status(500).json({ error: 'Errore durante il download del file.' });
+  }
 };
 
-export const getFileContents = (req, res) => {
+export const getFileContents = async (req, res) => {
   const { path: folderPath } = req.query;
   const userId = req.user.id;
 
@@ -303,11 +367,13 @@ export const getFileContents = (req, res) => {
     folderPath || ''
   );
 
-  fs.readdir(fullPath, { withFileTypes: true }, (err, entries) => {
-    if (err) {
-      console.error('Errore nel recupero dei contenuti della cartella:', err);
-      return res.status(500).json({ error: 'Errore nel recupero dei contenuti della cartella.' });
-    }
+  try {
+    const entries = await new Promise((resolve, reject) => {
+      fs.readdir(fullPath, { withFileTypes: true }, (err, entries) => {
+        if (err) return reject(err);
+        resolve(entries);
+      });
+    });
 
     const folders = entries
       .filter((entry) => entry.isDirectory())
@@ -320,12 +386,14 @@ export const getFileContents = (req, res) => {
         encryptedName: entry.name,
       }));
 
-    res.status(200).json({ folders, files });
-  });
+    return res.status(200).json({ folders, files });
+  } catch (error) {
+    console.error('Errore nel recupero dei contenuti della cartella:', error);
+    return res.status(500).json({ error: 'Errore nel recupero dei contenuti della cartella.' });
+  }
 };
 
-
-export const getFolders = (req, res) => {
+export const getFolders = async (req, res) => {
   const userId = req.user.id;
 
   const query = `
@@ -334,14 +402,19 @@ export const getFolders = (req, res) => {
     WHERE userId = ? AND parentPath = '/';
   `;
 
-  db.query(query, [userId], (err, results) => {
-    if (err) {
-      console.error('Errore nel recupero delle cartelle:', err);
-      return res.status(500).json({ error: 'Errore nel recupero delle cartelle.' });
-    }
+  try {
+    const results = await new Promise((resolve, reject) => {
+      db.query(query, [userId], (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
 
-    res.status(200).json({ folders: results });
-  });
+    return res.status(200).json({ folders: results });
+  } catch (error) {
+    console.error('Errore nel recupero delle cartelle:', error);
+    return res.status(500).json({ error: 'Errore nel recupero delle cartelle.' });
+  }
 };
 
 export const uploadFile = async (req, res) => {

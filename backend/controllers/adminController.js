@@ -8,17 +8,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 
-export const getAllUsers = (req, res) => {
+export const getAllUsers = async (req, res) => {
   const query = 'SELECT id, username, role FROM users';
 
-  db.query(query, (err, results) => {
-    if (err) {
-      console.error('Errore durante il recupero degli utenti:', err);
-      return res.status(500).json({ error: 'Errore nel server durante il recupero degli utenti.' });
-    }
-
-    res.status(200).json(results);
-  });
+  try {
+    const results = await new Promise((resolve, reject) => {
+      db.query(query, (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
+    return res.status(200).json(results);
+  } catch (error) {
+    console.error('Errore durante il recupero degli utenti:', error);
+    return res.status(500).json({ error: 'Errore nel server durante il recupero degli utenti.' });
+  }
 };
 
 export const deleteUser = async (req, res) => {

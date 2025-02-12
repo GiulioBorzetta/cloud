@@ -27,7 +27,7 @@ export const getUserInfo = async (req, res) => {
   }
 };
 
-export const updateUsername = (req, res) => {
+export const updateUsername = async (req, res) => {
   const userId = req.user.id;
   const { newUsername } = req.body;
 
@@ -36,38 +36,56 @@ export const updateUsername = (req, res) => {
   }
 
   const query = `UPDATE users SET username = ? WHERE id = ?`;
-  db.query(query, [newUsername, userId], (err) => {
-    if (err) {
-      console.error('Errore durante l\'aggiornamento del nome utente:', err);
-      return res.status(500).json({ error: 'Errore durante l\'aggiornamento del nome utente.' });
-    }
 
-    res.status(200).json({ message: 'Nome utente aggiornato con successo!' });
-  });
+  try {
+    await new Promise((resolve, reject) => {
+      db.query(query, [newUsername, userId], (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+    return res.status(200).json({ message: 'Nome utente aggiornato con successo!' });
+  } catch (error) {
+    console.error('Errore durante l\'aggiornamento del nome utente:', error);
+    return res.status(500).json({ error: 'Errore durante l\'aggiornamento del nome utente.' });
+  }
 };
 
-export const getAllUsers = (req, res) => {
+export const getAllUsers = async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Accesso non autorizzato' });
   }
 
   const query = 'SELECT id, username, role FROM users';
-  db.query(query, (err, results) => {
-    if (err) {
-      console.error('Error fetching users:', err);
-      return res.status(500).json({ error: 'Errore durante il recupero degli utenti' });
-    }
 
-    res.json({ users: results });
-  });
+  try {
+    const results = await new Promise((resolve, reject) => {
+      db.query(query, (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
+    return res.json({ users: results });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return res.status(500).json({ error: 'Errore durante il recupero degli utenti' });
+  }
 };
 
-export const getUsers = (req, res) => {
+export const getUsers = async (req, res) => {
   const query = `SELECT id, username FROM users WHERE id != ?`;
-  db.query(query, [req.user.id], (err, results) => {
-    if (err) {
-      return res.status(500).json({ error: 'Errore nel recupero degli utenti.' });
-    }
-    res.status(200).json({ users: results });
-  });
+
+  try {
+    const results = await new Promise((resolve, reject) => {
+      db.query(query, [req.user.id], (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
+    return res.status(200).json({ users: results });
+  } catch (error) {
+    console.error('Errore nel recupero degli utenti:', error);
+    return res.status(500).json({ error: 'Errore nel recupero degli utenti.' });
+  }
 };
+

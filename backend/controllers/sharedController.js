@@ -1,7 +1,7 @@
 import db from '../db.js';
 import QRCode from 'qrcode';
 
-export const shareItem = (req, res) => {
+export const shareItem = async (req, res) => {
   const { itemType, itemId, sharedWithUserId } = req.body;
   const { id: ownerUserId } = req.user;
 
@@ -14,19 +14,23 @@ export const shareItem = (req, res) => {
   }
 
   const query = `INSERT INTO shared_items (itemType, itemId, ownerUserId, sharedWithUserId) VALUES (?, ?, ?, ?)`;
-  db.query(query, [itemType, itemId, ownerUserId, sharedWithUserId], (err) => {
-    if (err) {
-      return res.status(500).json({ error: 'Errore durante la condivisione dell\'elemento.' });
-    }
-    res.status(201).json({ message: 'Elemento condiviso con successo!' });
-  });
+
+  try {
+    await new Promise((resolve, reject) => {
+      db.query(query, [itemType, itemId, ownerUserId, sharedWithUserId], (err) => {
+        if (err) return reject(err);
+        resolve();
+      });
+    });
+    return res.status(201).json({ message: 'Elemento condiviso con successo!' });
+  } catch (error) {
+    console.error('Errore durante la condivisione dell\'elemento:', error);
+    return res.status(500).json({ error: 'Errore durante la condivisione dell\'elemento.' });
+  }
 };
 
-
-
-export const getSharedItems = (req, res) => {
+export const getSharedItems = async (req, res) => {
   const userId = req.user.id;
-
   const query = `
     SELECT si.itemType, si.id, f.originalName AS fileName, fo.name AS folderName, u.username AS owner
     FROM shared_items si
@@ -36,55 +40,66 @@ export const getSharedItems = (req, res) => {
     WHERE si.sharedWithUserId = ?
   `;
 
-  db.query(query, [userId], (err, results) => {
-    if (err) return res.status(500).json({ error: 'Errore nel recupero degli elementi condivisi.' });
-    res.status(200).json({ sharedItems: results });
-  });
+  try {
+    const results = await new Promise((resolve, reject) => {
+      db.query(query, [userId], (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
+    return res.status(200).json({ sharedItems: results });
+  } catch (error) {
+    console.error('Errore nel recupero degli elementi condivisi:', error);
+    return res.status(500).json({ error: 'Errore nel recupero degli elementi condivisi.' });
+  }
 };
 
-export const deleteSharedFile = (req, res) => {
+export const deleteSharedFile = async (req, res) => {
   const { fileId } = req.body;
-
   if (!fileId) {
     return res.status(400).json({ error: 'ID del file mancante.' });
   }
 
   const query = `
     DELETE FROM shared_items 
-    WHERE id = ? AND sharedWithUserId = ?;
+    WHERE id = ? AND sharedWithUserId = ?
   `;
 
-  db.query(query, [fileId, req.user.id], (err, results) => {
-    if (err) {
-      console.error('Errore durante l\'eliminazione del file condiviso:', err);
-      return res.status(500).json({ error: 'Errore durante l\'eliminazione del file condiviso.' });
-    }
+  try {
+    const results = await new Promise((resolve, reject) => {
+      db.query(query, [fileId, req.user.id], (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
 
     if (results.affectedRows === 0) {
       return res.status(404).json({ error: 'File condiviso non trovato.' });
     }
-
-    res.status(200).json({ message: 'File condiviso eliminato con successo.' });
-  });
+    return res.status(200).json({ message: 'File condiviso eliminato con successo.' });
+  } catch (error) {
+    console.error('Errore durante l\'eliminazione del file condiviso:', error);
+    return res.status(500).json({ error: 'Errore durante l\'eliminazione del file condiviso.' });
+  }
 };
 
-export const getSharedFileQRCode = (req, res) => {
+export const getSharedFileQRCode = async (req, res) => {
   const { fileId } = req.params;
-
   const query = `SELECT qrCode FROM shared_items WHERE itemId = ? AND itemType = 'file';`;
 
-  db.query(query, [fileId], (err, results) => {
-    if (err) {
-      console.error('Errore nella query del QR code:', err);
-      return res.status(500).json({ error: 'Errore nel server.' });
-    }
+  try {
+    const results = await new Promise((resolve, reject) => {
+      db.query(query, [fileId], (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
 
     if (results.length === 0) {
       return res.status(404).json({ error: 'QR code non trovato per l\'elemento condiviso.' });
     }
 
     const qrCode = results[0].qrCode || '';
-
     if (!qrCode.startsWith('data:image/png;base64,')) {
       console.error('Formato QR code non valido:', qrCode);
       return res.status(500).json({ error: 'Formato QR code non supportato.' });
@@ -98,13 +113,15 @@ export const getSharedFileQRCode = (req, res) => {
       'Content-Disposition': `attachment; filename="${fileId}_qr.png"`,
       'Content-Length': buffer.length,
     });
-    res.end(buffer);
-  });
+    return res.end(buffer);
+  } catch (error) {
+    console.error('Errore durante il recupero del QR code:', error);
+    return res.status(500).json({ error: 'Errore nel server.' });
+  }
 };
 
-export const getSharedWithMe = (req, res) => {
+export const getSharedWithMe = async (req, res) => {
   const { id: userId } = req.user;
-
   const query = `
     SELECT 
       si.itemType, 
@@ -126,11 +143,13 @@ export const getSharedWithMe = (req, res) => {
     WHERE si.sharedWithUserId = ?;
   `;
 
-  db.query(query, [userId], (err, results) => {
-    if (err) {
-      console.error('Errore nella query SQL:', err.message);
-      return res.status(500).json({ error: 'Errore nel recupero degli elementi condivisi.' });
-    }
+  try {
+    const results = await new Promise((resolve, reject) => {
+      db.query(query, [userId], (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
+      });
+    });
 
     if (results.length === 0) {
       return res.status(200).json({ message: 'Non ci sono elementi condivisi.' });
@@ -146,7 +165,10 @@ export const getSharedWithMe = (req, res) => {
       owner: item.owner,
     }));
 
-    res.status(200).json({ sharedItems: formattedResults });
-  });
+    return res.status(200).json({ sharedItems: formattedResults });
+  } catch (error) {
+    console.error('Errore nel recupero degli elementi condivisi:', error);
+    return res.status(500).json({ error: 'Errore nel recupero degli elementi condivisi.' });
+  }
 };
 

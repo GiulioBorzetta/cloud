@@ -19,15 +19,23 @@ import authenticateToken from '../middlewares/authenticateToken.js';
 export default (app) => {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-      const userFolder = req.params.folderName || 'default';
-      const userId = req.user.id;
-      const fullPath = path.join(process.cwd(), 'uploads', `${userId}`, userFolder);
+      (async () => {
+        try {
+          const userFolder = req.params.folderName || 'default';
+          const userId = req.user.id;
+          const fullPath = path.join(process.cwd(), 'uploads', `${userId}`, userFolder);
 
-      if (!fs.existsSync(fullPath)) {
-        fs.mkdirSync(fullPath, { recursive: true });
-      }
-  
-      cb(null, fullPath);
+          try {
+            await fs.promises.access(fullPath);
+          } catch (err) {
+            await fs.promises.mkdir(fullPath, { recursive: true });
+          }
+
+          cb(null, fullPath);
+        } catch (error) {
+          cb(error);
+        }
+      })();
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = `${Date.now()}-${file.originalname}`;
